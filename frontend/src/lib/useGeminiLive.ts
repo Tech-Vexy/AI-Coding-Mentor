@@ -10,19 +10,17 @@ export function useGeminiLive() {
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioWorkletNodeRef = useRef<AudioWorkletNode | null>(null);
   const screenCaptureIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const targetRef = useRef<HTMLElement | null>(null);
 
-  // Audio playback queue
   const audioQueueRef = useRef<AudioBuffer[]>([]);
   const isPlayingRef = useRef<boolean>(false);
   const nextPlayTimeRef = useRef<number>(0);
 
-  // We store the session token to use in tool calls
   const sessionTokenRef = useRef<string | null>(null);
 
   const playAudioChunk = useCallback(async (base64Audio: string) => {
     if (!audioContextRef.current) return;
 
-    // Decode base64 to ArrayBuffer
     const binaryString = window.atob(base64Audio);
     const len = binaryString.length;
     const bytes = new Uint8Array(len);
@@ -71,7 +69,9 @@ export function useGeminiLive() {
     if (wsRef.current?.readyState !== WebSocket.OPEN) return;
 
     try {
-      const canvas = await html2canvas(document.body, {
+      // Capture specific node if provided, else body. Improves performance.
+      const nodeToCapture = targetRef.current || document.body;
+      const canvas = await html2canvas(nodeToCapture, {
         scale: 0.5,
         useCORS: true
       });
@@ -146,34 +146,24 @@ export function useGeminiLive() {
     return window.btoa(binary);
   };
 
-  const connect = useCallback(async () => {
+  const connect = useCallback(async (token: string, captureRef?: HTMLElement | null) => {
     try {
       setState('connecting');
+      sessionTokenRef.current = token;
 
-      // In a real application, grab this token from the user's session context.
-      const devToken = "mock_dev_token";
-      sessionTokenRef.current = devToken;
-
-      const tokenResponse = await fetch("http://localhost:8000/api/live-token", {
-          headers: { "Authorization": `Bearer ${devToken}` }
-      });
-
-      if (!tokenResponse.ok) {
-           console.error("Failed to authenticate session");
-           setState('error');
-           return;
+      if (captureRef) {
+          targetRef.current = captureRef;
       }
 
-      const { gemini_token, model } = await tokenResponse.json();
-
-      const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${gemini_token}`;
+      // Connect to secure backend WebSocket proxy instead of Google directly
+      const wsUrl = `ws://localhost:8000/api/ws/gemini?token=${token}`;
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = async () => {
         ws.send(JSON.stringify({
             setup: {
-                model: model,
+                model: "models/gemini-2.0-flash-exp",
                 systemInstruction: {
                     parts: [{text: "You are Ada, an AI Tutor. You can see the student's screen and hear their voice."}]
                 },
@@ -230,7 +220,6 @@ export function useGeminiLive() {
                       }
                   }
               }
-              // Gemini Live v1alpha returns function calls at root level of toolCall
               if (data.toolCall?.functionCalls) {
                   handleToolCall(data.toolCall.functionCalls);
               }

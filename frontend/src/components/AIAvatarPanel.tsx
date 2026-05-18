@@ -2,12 +2,24 @@
 
 import { Mic, MicOff, Video, MessagesSquare } from 'lucide-react';
 import { useGeminiLive } from '@/lib/useGeminiLive';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function AIAvatarPanel() {
   const { state, connect, disconnect } = useGeminiLive();
+  const { token } = useAuth();
 
   const isConnected = state === 'connected';
   const isConnecting = state === 'connecting';
+
+  const handleConnect = () => {
+     if (token) {
+        // Connect and pass the main editor container if possible, otherwise body
+        const editorNode = document.getElementById('ide-container');
+        connect(token, editorNode);
+     } else {
+        alert("Please log in first.");
+     }
+  };
 
   return (
     <div className="w-80 h-full flex flex-col bg-gray-900 border-r border-gray-800 text-white">
@@ -36,8 +48,8 @@ export default function AIAvatarPanel() {
       <div className="p-4 border-t border-gray-800 bg-gray-950">
         <div className="flex justify-center gap-4">
           <button
-             onClick={isConnected ? disconnect : connect}
-             disabled={isConnecting}
+             onClick={isConnected ? disconnect : handleConnect}
+             disabled={isConnecting || !token}
              className={`p-3 rounded-full transition-colors ${isConnected ? 'bg-red-900 hover:bg-red-800 text-red-300' : 'bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50'}`}
           >
             {isConnected ? <MicOff size={20} /> : <Mic size={20} />}

@@ -9,3 +9,4 @@ pymongo
 google-genai<2,>=1.72
 google-adk>=1.33.0
 google-auth
+websockets

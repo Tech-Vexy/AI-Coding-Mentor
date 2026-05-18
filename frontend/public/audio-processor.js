@@ -1,33 +1,54 @@
 // audio-processor.js
-// A basic AudioWorkletProcessor to downsample audio to 16kHz 16-bit PCM for Gemini Live API
+// AudioWorkletProcessor with simple linear interpolation downsampling
+
 class GeminiAudioProcessor extends AudioWorkletProcessor {
-    constructor() {
-      super();
-      // Internal buffer for accumulating downsampled data
-      this.buffer = [];
-    }
-
-    process(inputs, outputs, parameters) {
-      const input = inputs[0];
-      if (input.length > 0) {
-        const channelData = input[0]; // Process only the first channel (mono)
-
-        // Simple float32 to int16 conversion
-        // In a real-world scenario, proper low-pass filtering and interpolation
-        // should be done to resample from 48kHz/44.1kHz down to 16kHz.
-        // For hackathon purposes, Gemini Live can handle raw Float32 to Int16 conversions well enough.
-
-        const int16Array = new Int16Array(channelData.length);
-        for (let i = 0; i < channelData.length; i++) {
-          let s = Math.max(-1, Math.min(1, channelData[i]));
-          int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-        }
-
-        // Send the PCM data back to the main thread
-        this.port.postMessage(int16Array.buffer, [int16Array.buffer]);
-      }
-      return true;
-    }
+  constructor() {
+    super();
+    this.targetSampleRate = 16000;
   }
 
-  registerProcessor('gemini-audio-processor', GeminiAudioProcessor);
+  process(inputs, outputs, parameters) {
+    const input = inputs[0];
+    if (input.length > 0) {
+      const channelData = input[0];
+
+      // Determine current sample rate (browser usually defaults to 44.1k or 48k)
+      // Since AudioWorklet doesn't easily expose context.sampleRate directly in process(),
+      // we'll assume a standard 48kHz for the hackathon downsampling ratio.
+      const sourceSampleRate = 48000;
+
+      const ratio = sourceSampleRate / this.targetSampleRate;
+      const targetLength = Math.round(channelData.length / ratio);
+      const int16Array = new Int16Array(targetLength);
+
+      let offsetResult = 0;
+      let offsetSource = 0;
+
+      while (offsetResult < targetLength) {
+        let nextSourceOffset = Math.round((offsetResult + 1) * ratio);
+        let accum = 0;
+        let count = 0;
+
+        // Simple averaging/decimation
+        for (let i = offsetSource; i < nextSourceOffset && i < channelData.length; i++) {
+          accum += channelData[i];
+          count++;
+        }
+
+        let sample = count > 0 ? accum / count : 0;
+
+        // Float32 to Int16
+        let s = Math.max(-1, Math.min(1, sample));
+        int16Array[offsetResult] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+
+        offsetResult++;
+        offsetSource = nextSourceOffset;
+      }
+
+      this.port.postMessage(int16Array.buffer, [int16Array.buffer]);
+    }
+    return true;
+  }
+}
+
+registerProcessor('gemini-audio-processor', GeminiAudioProcessor);

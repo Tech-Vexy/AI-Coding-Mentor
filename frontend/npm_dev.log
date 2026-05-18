@@ -16,3 +16,5 @@
   144 |           headers: { "Authorization": "Bearer mock_dev_token" }
   145 |       });
   146 |       const { gemini_token, model } = await tokenResponse.json(); (src/lib/useGeminiLive.ts:240:15)
+✓ Compiled in 2.6s
+✓ Compiled in 339ms
