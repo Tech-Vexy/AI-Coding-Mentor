@@ -1,0 +1,20 @@
+
+> frontend@0.1.0 dev
+> next dev
+
+⚠ Port 3000 is in use by an unknown process, using available port 3001 instead.
+▲ Next.js 16.2.6 (Turbopack)
+- Local:         http://localhost:3001
+- Network:       http://192.168.0.2:3001
+✓ Ready in 795ms GET / 200 in 1370ms (next.js: 638ms, application-code: 732ms)
+[browser] Failed to connect: TypeError: Failed to fetch
+    at useGeminiLive.useCallback[connect] (src/lib/useGeminiLive.ts:143:35)
+  141 |       // 1. Get Live Token from Backend
+  142 |       // Mock session token for dev
+> 143 |       const tokenResponse = await fetch("http://localhost:8000/api/live-token", {
+      |                                   ^
+  144 |           headers: { "Authorization": "Bearer mock_dev_token" }
+  145 |       });
+  146 |       const { gemini_token, model } = await tokenResponse.json(); (src/lib/useGeminiLive.ts:240:15)
+✓ Compiled in 2.6s
+✓ Compiled in 339ms
