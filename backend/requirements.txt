@@ -6,4 +6,5 @@ pydantic
 python-dotenv
 pydantic-settings
 pymongo
-google-genai
+google-genai<2,>=1.72
+google-adk>=1.33.0
