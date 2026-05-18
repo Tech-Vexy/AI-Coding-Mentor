@@ -8,7 +8,7 @@ app = FastAPI(title="Ada AI Tutor Backend")
 # Allow frontend to make requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"], # Restrict to frontend origin so allow_credentials can be True
+    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
