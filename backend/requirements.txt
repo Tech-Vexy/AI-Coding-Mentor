@@ -5,3 +5,5 @@ python-jose[cryptography]
 pydantic
 python-dotenv
 pydantic-settings
+pymongo
+google-genai
